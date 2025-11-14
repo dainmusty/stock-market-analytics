@@ -53,6 +53,15 @@ jobs:
       - name: 🧱 Checkout repository
         uses: actions/checkout@v4
 
+        # ---------------------- Get AWS Account ID ----------------------
+      - name: 🔍 Retrieve AWS Account ID dynamically
+        id: aws-id
+        run: |
+          echo "Fetching AWS account ID..."
+          account_id=$(aws sts get-caller-identity --query Account --output text --region ${{ env.AWS_REGION }} || echo "unknown")
+          echo "account_id=$account_id" >> $GITHUB_ENV
+          
+
       - name: ☁️ Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
