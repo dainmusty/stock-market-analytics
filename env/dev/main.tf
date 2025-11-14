@@ -130,7 +130,7 @@ module "iam" {
   dynamodb_table_arn      = module.dynamo.table_arn
   region                  = "us-east-1"
   account_id              = data.aws_caller_identity.current.account_id
-  github_repo_branch_link = "repo:dainmusty/stock-analyzer:ref:refs/heads/main" # Update with the correct repo/branch
+  github_repo_branch_link = "repo:dainmusty/stock-market-analytics:*" # Update with the correct repo/branch
 
 
   lambda_ingest_role_name   = "${local.env}-lambda-ingest-exec-role"

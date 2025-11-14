@@ -16,24 +16,25 @@ resource "aws_iam_role" "tf_role" {
   name = var.tf_role_name
 
   assume_role_policy = jsonencode({
-    Version = "2012-10-17",
-    Statement = [
-      {
-        Effect = "Allow",
-        Principal = {
-          Federated = data.aws_iam_openid_connect_provider.github.arn
+  Version = "2012-10-17",
+  Statement = [
+    {
+      Effect = "Allow",
+      Principal = {
+        Federated = data.aws_iam_openid_connect_provider.github.arn
+      },
+      Action = "sts:AssumeRoleWithWebIdentity",
+      Condition = {
+        StringEquals = {
+          "token.actions.githubusercontent.com:aud" = "sts.amazonaws.com"
         },
-        Action = "sts:AssumeRoleWithWebIdentity",
-        Condition = {
-          StringEquals = {
-            # Must match your GitHub repo and branch
-            "token.actions.githubusercontent.com:aud" = "sts.amazonaws.com",
-            "token.actions.githubusercontent.com:sub" = var.github_repo_branch_link
-          }
+        StringLike = {
+          "token.actions.githubusercontent.com:sub" = var.github_repo_branch_link
         }
       }
-    ]
-  })
+    }
+  ]
+})
 
   tags = {
     Purpose = "GitHub Actions Terraform Deployment Role"
