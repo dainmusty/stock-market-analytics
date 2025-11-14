@@ -39,18 +39,16 @@ variable "glue_role_name" {
   default     = "glue-exec-role"
 }
 
-variable "github_repo_branch_link" {
-  description = "GitHub repository and branch link for OIDC trust, e.g., 'repo:username/repo-name:ref:refs/heads/main'"
+variable "glue_policy_name" {
+  description = "Name of the Glue policy"
   type        = string
-}
-
-variable "tf_role_name" {
-  description = "Name of the IAM Role for GitHub Actions Terraform Deployment"
-  type        = string
-  default     = "tf_role"
 }
 
 # IAM Role and Policy for Lambda Stock Producer
 variable "lambda_producer_role_name" {
+  type = string
+}
+
+variable "kinesis_stream_arn" {
   type = string
 }

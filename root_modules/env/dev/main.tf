@@ -10,7 +10,7 @@ locals {
 }
 
 module "s3" {
-  source = "../../modules/s3"
+  source = "../../../modules/s3"
 
   raw_data_bucket_name       = "${local.project_name}-${local.env}-raw"
   athena_results_bucket_name = "${local.project_name}-${local.env}-athena-results"
@@ -24,7 +24,7 @@ module "s3" {
 
 
 module "rds" {
-  source = "../../modules/rds"
+  source = "../../../modules/rds"
 
   db_engine               = "postgres"
   db_engine_version       = "13"
@@ -52,7 +52,7 @@ module "rds" {
 }
 
 module "monitoring" {
-  source = "../../modules/monitoring"
+  source = "../../../modules/monitoring"
 
   env                  = local.env
   lambda_function_name = module.lambda_ingest.lambda_function_name
@@ -64,7 +64,7 @@ module "monitoring" {
 }
 
 module "lambda_ingest" {
-  source = "../../modules/lambda_ingest"
+  source = "../../../modules/lambda_ingest"
 
   env                   = local.env
   artifacts_bucket_name = module.s3.artifacts_bucket_name
@@ -82,7 +82,7 @@ module "lambda_ingest" {
 
 
 module "lambda_producer" {
-  source = "../../modules/lambda_producer"
+  source = "../../../modules/lambda_producer"
 
   artifacts_bucket         = module.s3.artifacts_bucket_name
   lambda_producer_role_arn = module.iam.lambda_producer_role_arn
@@ -108,7 +108,7 @@ module "lambda_producer" {
 
 
 module "kinesis" {
-  source = "../../modules/kinesis"
+  source = "../../../modules/kinesis"
 
   env                 = local.env
   kinesis_stream_name = "${local.env}-stock-stream"
@@ -121,26 +121,32 @@ module "kinesis" {
 }
 
 module "iam" {
-  source = "../../modules/iam"
+  source = "../../../modules/infra_iam"
 
-  tf_role_name            = "${local.project_name}-tf-${local.env}-role"
+  # general variables
+  region                  = "us-east-1"
+  account_id              = data.aws_caller_identity.current.account_id
+
+  # lambda-ingest and producer variables
   lambda_policy_name      = "${local.env}-lambda-ingest-policy"
+  lambda_ingest_role_name   = "${local.env}-lambda-ingest-exec-role"
+  lambda_producer_role_name = "lambda-producer-exec-${local.env}"
+  
+  # glue variables
+  glue_role_name            = "${local.env}-glue-exec-role"
+  glue_policy_name          = "${local.env}-glue-policy"
+
+  # Bucket and table ARNs variables
   raw_bucket_arn          = module.s3.raw_bucket_arn
   artifacts_bucket_arn    = module.s3.artifacts_bucket_arn
   dynamodb_table_arn      = module.dynamo.table_arn
-  region                  = "us-east-1"
-  account_id              = data.aws_caller_identity.current.account_id
-  github_repo_branch_link = "repo:dainmusty/stock-market-analytics:*" # Update with the correct repo/branch
-
-
-  lambda_ingest_role_name   = "${local.env}-lambda-ingest-exec-role"
-  lambda_producer_role_name = "lambda-producer-exec-${local.env}"
+  kinesis_stream_arn = module.kinesis.kinesis_stream_arn
 }
 
 
 
 module "glue" {
-  source = "../../modules/glue"
+  source = "../../../modules/glue"
 
   env              = local.env
   raw_bucket_name  = module.s3.raw_bucket_name
@@ -153,7 +159,7 @@ module "glue" {
 }
 
 module "athena" {
-  source = "../../modules/athena"
+  source = "../../../modules/athena"
 
   glue_database_name         = "analytics_db"
   athena_results_bucket_name = module.s3.athena_results_bucket_name
@@ -164,7 +170,7 @@ module "athena" {
 }
 
 module "dynamo" {
-  source = "../../modules/dynamo"
+  source = "../../../modules/dynamo"
 
   env = local.env
   tags = {
@@ -174,7 +180,7 @@ module "dynamo" {
 }
 
 module "ssm" {
-  source                   = "../../modules/ssm"
+  source                   = "../../../modules/ssm"
   db_access_parameter_name = "/db/access"
   db_secret_parameter_name = "/db/secure/access"
   key_path_parameter_name  = "/kp/path"
