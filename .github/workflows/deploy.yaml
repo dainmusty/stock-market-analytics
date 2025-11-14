@@ -58,7 +58,7 @@ jobs:
       - name: ☁️ Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          role-to-assume: arn:aws:iam::${{ env.account_id }}:role/${{ env.ROLE_NAME }}
+          role-to-assume: arn:aws:iam::${{ env.AWS_ACCOUNT_ID }}:role/${{ env.ROLE_NAME }}
           role-session-name: GitHubActions-Terraform-Plan-${{ github.run_id }}
           aws-region: ${{ env.AWS_REGION }}
 
@@ -112,7 +112,7 @@ jobs:
       - name: ☁️ Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          role-to-assume: arn:aws:iam::${{ env.account_id }}:role/${{ env.ROLE_NAME }}
+          role-to-assume: arn:aws:iam::${{ env.AWS_ACCOUNT_ID }}:role/${{ env.ROLE_NAME }}
           role-session-name: GitHubActions-Terraform-Apply-${{ github.run_id }}
           aws-region: ${{ env.AWS_REGION }}
 
@@ -167,7 +167,7 @@ jobs:
       - name: ☁️ Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          role-to-assume: arn:aws:iam::${{ env.account_id }}:role/${{ env.ROLE_NAME }}
+          role-to-assume: arn:aws:iam::${{ env.AWS_ACCOUNT_ID }}:role/${{ env.ROLE_NAME }}
           role-session-name: GitHubActions-Terraform-Destroy-${{ github.run_id }}
           aws-region: ${{ env.AWS_REGION }}
 
