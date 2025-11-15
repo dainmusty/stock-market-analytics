@@ -58,9 +58,11 @@ jobs:
       - name: ☁️ Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          role-to-assume: arn:aws:iam::${{ env.AWS_ACCOUNT_ID }}:role/${{ env.ROLE_NAME }}
+          with:
+          role-to-assume: arn:aws:iam::${{ env.ACCOUNT_ID }}:role/${{ env.ROLE_NAME }}
           role-session-name: GitHubActions-Terraform-Plan-${{ github.run_id }}
           aws-region: ${{ env.AWS_REGION }}
+
 
       - name: ⚙️ Set up Terraform
         uses: hashicorp/setup-terraform@v3
@@ -69,12 +71,12 @@ jobs:
 
       - name: 🧩 Terraform Init
         working-directory: env/dev
-        run: terraform init
+        run: terraform init 
 
       - name: 🧾 Terraform Plan
         id: plan
         working-directory: env/dev
-        run: terraform plan
+        run: terraform plan -out=tfplan
 
       - name: 🔍 Check for changes
         id: check-plan
@@ -112,9 +114,11 @@ jobs:
       - name: ☁️ Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          role-to-assume: arn:aws:iam::${{ env.AWS_ACCOUNT_ID }}:role/${{ env.ROLE_NAME }}
+          with:
+          role-to-assume: arn:aws:iam::${{ env.ACCOUNT_ID }}:role/${{ env.ROLE_NAME }}
           role-session-name: GitHubActions-Terraform-Apply-${{ github.run_id }}
           aws-region: ${{ env.AWS_REGION }}
+
 
       - name: ⚙️ Set up Terraform
         uses: hashicorp/setup-terraform@v3
@@ -167,9 +171,11 @@ jobs:
       - name: ☁️ Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          role-to-assume: arn:aws:iam::${{ env.AWS_ACCOUNT_ID }}:role/${{ env.ROLE_NAME }}
+          with:
+          role-to-assume: arn:aws:iam::${{ env.ACCOUNT_ID }}:role/${{ env.ROLE_NAME }}
           role-session-name: GitHubActions-Terraform-Destroy-${{ github.run_id }}
           aws-region: ${{ env.AWS_REGION }}
+
 
       - name: ⚙️ Set up Terraform
         uses: hashicorp/setup-terraform@v3

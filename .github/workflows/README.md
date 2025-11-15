@@ -419,3 +419,5 @@ if: github.event.inputs.terraform_action == 'apply'
 
 
 Would you like me to now show how to automatically switch the handler (main vs lambda_handler) in CI/CD depending on environment (dev vs prod)?
+
+ ${{ secrets.AWS_IAM_ROLE_ARN }}
