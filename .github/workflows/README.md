@@ -813,3 +813,23 @@ jobs:
       - name: 💣 Terraform Destroy
         working-directory: ${{ env.DEPLOYMENT_PATH }}
         run: terraform destroy -auto-approve
+
+
+
+✅ 1. The workflow will NOT automatically create a Pull Request.
+
+Your current setup supports running Terraform plan on:
+
+A PR created by you
+
+A manual workflow_dispatch plan
+
+(optionally) plan from a push to main — but this is typically not preferred
+
+But nothing in the workflow automatically creates a PR for you.
+
+So yes — you must manually create the pull request if your intention is:
+
+PR → Plan → PR Comment → Merge → Apply
+
+This is the standard best-practice flow.

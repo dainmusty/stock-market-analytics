@@ -179,3 +179,79 @@ jobs:
 
       - name: 💣 Terraform Destroy
         run: terraform destroy -auto-approve
+
+
+when i hit pull request, got the info below
+Choose different branches or forks above to discuss and review changes. Learn about pull requests
+
+This message means:
+❌ There are no changes between your current branch and main.
+So GitHub cannot create a pull request.
+You will only see this message when:
+
+
+You are already on the main branch, OR
+
+
+You have not created a separate feature branch with changes, OR
+
+
+The code was pushed directly into main so GitHub sees nothing to compare.
+
+
+
+✅ Why this happened
+Your workflow triggers on:
+push:
+  branches:
+    - main
+
+So when you pushed your Terraform code, it went straight to main.
+Since PRs are created from another branch → into main, GitHub says:
+
+“Choose different branches …”
+(because you are comparing main with main)
+
+
+🚀 How to fix it (best practice)
+Step 1 — Create a new branch
+On your machine:
+git checkout -b feature/terraform-update
+
+Commit something OR move your config files into this branch:
+git add .
+git commit -m "Move Terraform code to feature branch"
+git push origin feature/terraform-update
+
+Step 2 — Create a Pull Request
+Now GitHub will show:
+
+Compare: feature/terraform-update → main
+
+And PR will be created successfully.
+Then:
+
+
+Terraform Plan will run automatically
+
+
+Plan comment will appear on the PR
+
+
+After you review, merge the PR
+
+
+Terraform Apply will run (with manual approval)
+
+
+This is the correct professional workflow.
+
+🧠 Important: Your current workflow does not support “PR plan” because your Terraform code is already in main
+Once you create the feature branch and PR, everything works normally.
+
+If you want, I can:
+✔️ Modify the workflow so you never push directly to main
+✔️ Add a rule that forces PR reviews before merging
+✔️ Add branch protections
+✔️ Add automatic plan comments on PRs
+Just say "set it up" and I will configure everything properly.
