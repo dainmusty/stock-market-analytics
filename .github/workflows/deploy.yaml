@@ -70,12 +70,12 @@ jobs:
           terraform_version: ${{ env.TF_VERSION }}
 
       - name: 🧩 Terraform Init
-        working-directory: env/dev
+        working-directory: root_modules/env/dev
         run: terraform init 
 
       - name: 🧾 Terraform Plan
         id: plan
-        working-directory: env/dev
+        working-directory: root_modules/env/dev
         run: terraform plan -out=tfplan
 
       - name: 🔍 Check for changes
@@ -125,12 +125,8 @@ jobs:
         with:
           terraform_version: ${{ env.TF_VERSION }}
 
-      - name: 🧩 Terraform Init
-        working-directory: env/dev
-        run: terraform init
-
       - name: 🚀 Terraform Apply
-        working-directory: env/dev
+        working-directory: root_modules/env/dev
         run: terraform apply -auto-approve
 
       # ---------------------- Python Producer Setup ----------------------
@@ -182,10 +178,6 @@ jobs:
         with:
           terraform_version: ${{ env.TF_VERSION }}
 
-      - name: 🧩 Terraform Init
-        working-directory: env/dev
-        run: terraform init
-
       - name: 💣 Terraform Destroy
-        working-directory: env/dev
+        working-directory: root_modules/env/dev
         run: terraform destroy -auto-approve
