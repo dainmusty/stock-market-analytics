@@ -36,9 +36,10 @@ env:
   AWS_REGION: us-east-1
   TF_VERSION: 1.9.5
   PYTHON_VERSION: '3.11'
-  ROLE_NAME: data-analytics-tf-dev-role          # Static IAM role (already linked to GitHub OIDC)
+  ROLE_NAME: data-analytics-tf-dev-role          # Existing terraform role for data-analytics project. Update per environment as needed.
   ARTIFACTS_BUCKET: data-analytics-dev-artifacts # Should match Terraform-deployed bucket name
   ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
+  DEPLOYMENT_PATH: root_modules/env/dev
 
 
 jobs:
@@ -69,16 +70,16 @@ jobs:
           terraform_version: ${{ env.TF_VERSION }}
 
       - name: 🧩 Terraform Init
-        working-directory: root_modules/env/dev
+        working-directory: ${{ env.DEPLOYMENT_PATH }}
         run: terraform init 
 
       - name: 🧾 Terraform Plan
         id: plan
-        working-directory: root_modules/env/dev
+        working-directory: ${{ env.DEPLOYMENT_PATH }}
         run: terraform plan -out=tfplan
 
       - name: 🔍 Check for changes
-        working-directory: root_modules/env/dev
+        working-directory: ${{ env.DEPLOYMENT_PATH }}
         id: check-plan
         run: |
           terraform show -no-color tfplan | grep -q "No changes" && echo "changes=false" >> $GITHUB_OUTPUT || echo "changes=true" >> $GITHUB_OUTPUT
@@ -126,7 +127,7 @@ jobs:
           terraform_version: ${{ env.TF_VERSION }}
 
       - name: 🚀 Terraform Apply
-        working-directory: root_modules/env/dev
+        working-directory: ${{ env.DEPLOYMENT_PATH }}
         run: terraform apply -auto-approve
 
       # ---------------------- Python Producer Setup ----------------------
@@ -179,5 +180,5 @@ jobs:
           terraform_version: ${{ env.TF_VERSION }}
 
       - name: 💣 Terraform Destroy
-        working-directory: root_modules/env/dev
+        working-directory: ${{ env.DEPLOYMENT_PATH }}
         run: terraform destroy -auto-approve
