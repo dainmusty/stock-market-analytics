@@ -50,8 +50,16 @@ resource "aws_iam_policy" "terraform_least_privilege" {
       {
         Sid    = "TerraformCoreResources",
         Effect = "Allow",
-        Action = var.tf_role_permissions
+        Action = var.tf_role_permissions,
         Resource = "*"
+      },
+      {
+        Sid    = "AllowReadOIDCProvider",
+        Effect = "Allow",
+        Action = [
+          "iam:GetOpenIDConnectProvider"
+        ],
+        Resource = "arn:aws:iam::*:oidc-provider/token.actions.githubusercontent.com"
       }
     ]
   })
