@@ -22,35 +22,6 @@ module "s3" {
 }
 
 
-
-module "rds" {
-  source = "../../../modules/rds"
-
-  db_engine               = "postgres"
-  db_engine_version       = "13"
-  instance_class          = "db.t3.micro"
-  allocated_storage       = 20
-  db_name                 = "appdb"
-  username                = module.ssm.db_access_parameter_value
-  password                = module.ssm.db_secret_parameter_value
-  vpc_security_group_ids  = []
-  multi_az                = false
-  storage_type            = "gp2"
-  backup_retention_period = 7
-  identifier              = "dev-db"
-  skip_final_snapshot     = true
-  publicly_accessible     = false
-  db_tags                 = { Environment = "dev" }
-  env                     = local.env
-  db_subnet_group_name    = "dev-db-subnet-group"
-  subnet_ids              = []
-
-  # ElastiCache/Cache related
-  node_type       = "cache.t3.micro"
-  num_cache_nodes = 2
-  cache_sg_ids    = []
-}
-
 module "monitoring" {
   source = "../../../modules/monitoring"
 
@@ -62,6 +33,7 @@ module "monitoring" {
     Project     = "data-analytics"
   }
 }
+
 
 module "lambda_ingest" {
   source = "../../../modules/lambda_ingest"
@@ -177,15 +149,6 @@ module "dynamo" {
     Environment = "dev"
     Project     = "data-analytics"
   }
-}
-
-module "ssm" {
-  source                   = "../../../modules/ssm"
-  db_access_parameter_name = "/db/access"
-  db_secret_parameter_name = "/db/secure/access"
-  key_path_parameter_name  = "/kp/path"
-  key_name_parameter_name  = "/kp/name"
-
 }
 
 
