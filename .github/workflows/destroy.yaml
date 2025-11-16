@@ -38,6 +38,10 @@ jobs:
         with:
           terraform_version: ${{ env.TF_VERSION }}
 
+      - name: Terraform Init
+        working-directory: ${{ env.DEPLOYMENT_PATH }}
+        run: terraform init
+
       - name: Terraform Destroy
         working-directory: ${{ env.DEPLOYMENT_PATH }}
         run: terraform destroy -auto-approve
