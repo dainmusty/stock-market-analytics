@@ -139,8 +139,8 @@ jobs:
       needs.Plan.outputs.plan-changes == 'true' &&
       github.event.inputs.terraform_action == 'apply'
     environment:
-      name: ${{ github.event.inputs.environment }}
-      url: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
+      # If workflow_dispatch → use selected environment, else fallback to dev
+      name: ${{ github.event.inputs.environment || 'dev' }}
     steps:
       - name: ⏳ Await manual approval
         uses: trstringer/manual-approval@v1
@@ -148,7 +148,8 @@ jobs:
           approvers: "${{ env.APPROVERS }}"
           minimum-approvals: 1
           issue-title: "Terraform Apply Approval Required"
-          issue-body: "Approve to deploy Terraform changes to **${{ github.event.inputs.environment }}**."
+          issue-body: "Approve to deploy Terraform changes to **${{ github.event.inputs.environment || 'dev' }}**."
+
 
 
 # ============================================================
@@ -162,7 +163,7 @@ jobs:
     if: github.event.inputs.terraform_action == 'apply'
 
     environment:
-      name: ${{ github.event.inputs.environment }}
+      name: ${{ github.event.inputs.environment || 'dev' }}
 
     steps:
       - name: 🧱 Checkout repository
