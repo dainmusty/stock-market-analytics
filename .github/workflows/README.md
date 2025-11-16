@@ -1,3 +1,26 @@
+# Standard worflow 
+🔥 So the correct sequence is:
+
+Go to the PR that GitHub suggested
+
+Click “Compare & Create Pull Request”
+
+Add a title + description (optional)
+
+Click Create Pull Request
+
+Wait for Terraform Plan to finish
+
+Review the plan summary
+
+When ready → Merge PR
+
+The Apply workflow will start automatically
+
+Approve the Apply step
+
+Terraform Apply will run
+
 🏗️ Visual Architecture Diagram
            ┌─────────────────────────────────────────────┐
            │             GitHub Actions CI/CD             │
