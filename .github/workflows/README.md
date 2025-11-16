@@ -856,3 +856,242 @@ So yes — you must manually create the pull request if your intention is:
 PR → Plan → PR Comment → Merge → Apply
 
 This is the standard best-practice flow.
+
+#workflow still in progress
+name: Stock Analyzer CI/CD
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+    inputs:
+      terraform_action:
+        description: "Select the Terraform action to perform"
+        required: true
+        type: choice
+        options:
+          - "plan"
+          - "apply"
+          - "destroy"
+      environment:
+        description: "Choose the environment (for visibility only)"
+        required: true
+        type: choice
+        options:
+          - "dev"
+          - "staging"
+          - "production"
+      skip_nochange:
+        description: "Apply even if no change is reported in the plan"
+        required: false
+        type: boolean
+      approvers:
+        description: "Comma-separated list of approvers"
+        required: false
+        default: "dainmusty"
+
+permissions:
+  id-token: write
+  contents: read
+  pull-requests: write
+  packages: write
+
+env:
+  AWS_REGION: us-east-1
+  TF_VERSION: 1.9.5
+  PYTHON_VERSION: '3.11'
+  ROLE_NAME: data-analytics-tf-dev-role
+  ARTIFACTS_BUCKET: data-analytics-dev-artifacts
+  ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
+  DEPLOYMENT_PATH: root_modules/env/dev
+  APPROVERS: dainmusty
+
+
+# ============================================================
+#                           PLAN JOB
+# ============================================================
+jobs:
+  Plan:
+    runs-on: ubuntu-latest
+    if: |
+      github.event_name == 'pull_request' ||
+      github.event.inputs.terraform_action == 'plan'
+    environment:
+      name: ${{ github.event.inputs.environment || 'dev' }}
+    outputs:
+      plan-changes: ${{ steps.check-plan.outputs.changes }}
+      plan-output: ${{ steps.plan_out.outputs.stdout }}
+
+    steps:
+      - name: 🧱 Checkout repository
+        uses: actions/checkout@v4
+
+      - name: ☁️ Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::${{ env.ACCOUNT_ID }}:role/${{ env.ROLE_NAME }}
+          role-session-name: GitHubActions-Terraform-Plan-${{ github.run_id }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: ⚙️ Set up Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+
+      - name: 🧩 Terraform Init
+        working-directory: ${{ env.DEPLOYMENT_PATH }}
+        run: terraform init 
+
+      - name: 🧾 Terraform Plan
+        id: plan
+        working-directory: ${{ env.DEPLOYMENT_PATH }}
+        run: terraform plan -no-color -out=tfplan
+
+      - name: Capture Plan Output
+        id: plan_out
+        working-directory: ${{ env.DEPLOYMENT_PATH }}
+        run: terraform show -no-color tfplan
+        shell: bash
+
+      - name: 🔍 Check for changes
+        working-directory: ${{ env.DEPLOYMENT_PATH }}
+        id: check-plan
+        run: |
+          terraform show -no-color tfplan | grep -q "No changes" \
+          && echo "changes=false" >> $GITHUB_OUTPUT \
+          || echo "changes=true" >> $GITHUB_OUTPUT
+
+
+# ============================================================
+#               COMMENT PLAN BACK TO THE PR
+# ============================================================
+  PlanComment:
+    needs: Plan
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 💬 Comment Plan Summary to PR
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const plan = `${{ needs.Plan.outputs.plan-output }}`;
+            const comment = "### Terraform Plan Summary\n```\n" + plan.substring(0, 65000) + "\n```";
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: comment
+            });
+
+
+# ============================================================
+#                     MANUAL APPROVAL STAGE
+# ============================================================
+  Approve:
+    needs: Plan
+    runs-on: ubuntu-latest
+    if: |
+      needs.Plan.outputs.plan-changes == 'true' &&
+      github.event.inputs.terraform_action == 'apply'
+    environment:
+      # If workflow_dispatch → use selected environment, else fallback to dev
+      name: ${{ github.event.inputs.environment || 'dev' }}
+    steps:
+      - name: ⏳ Await manual approval
+        uses: trstringer/manual-approval@v1
+        with:
+          approvers: "${{ env.APPROVERS }}"
+          minimum-approvals: 1
+          issue-title: "Terraform Apply Approval Required"
+          issue-body: "Approve to deploy Terraform changes to **${{ github.event.inputs.environment || 'dev' }}**."
+
+
+
+# ============================================================
+#                         APPLY JOB
+# ============================================================
+  Apply:
+    needs: [Plan, Approve]
+    runs-on: ubuntu-latest
+
+    # 🔥 Option A: Apply ONLY runs via manual workflow_dispatch
+    if: github.event.inputs.terraform_action == 'apply'
+
+    environment:
+      name: ${{ github.event.inputs.environment || 'dev' }}
+
+    steps:
+      - name: 🧱 Checkout repository
+        uses: actions/checkout@v4
+
+      - name: ☁️ Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::${{ env.ACCOUNT_ID }}:role/${{ env.ROLE_NAME }}
+          role-session-name: GitHubActions-Terraform-Apply-${{ github.run_id }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: ⚙️ Set up Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+
+      - name: 🚀 Terraform Apply
+        working-directory: ${{ env.DEPLOYMENT_PATH }}
+        run: terraform apply -auto-approve
+
+      - name: 🐍 Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: 📦 Install dependencies
+        run: |
+          pip install -r requirements.txt
+          pip install boto3 yfinance
+
+      - name: 📦 Package producer
+        run: |
+          zip -r stock_producer.zip scripts/stock_producer.py requirements.txt
+
+      - name: ☁️ Upload artifact to S3
+        run: |
+          aws s3 cp stock_producer.zip s3://${{ env.ARTIFACTS_BUCKET }}/lambda/stock_producer.zip
+
+      - name: ▶️ Run stock producer (manual trigger only)
+        if: github.event_name == 'workflow_dispatch'
+        run: python scripts/stock_producer.py
+
+
+# ============================================================
+#                         DESTROY JOB
+# ============================================================
+  Destroy:
+    runs-on: ubuntu-latest
+    if: github.event.inputs.terraform_action == 'destroy'
+    environment:
+      name: ${{ github.event.inputs.environment }}
+    steps:
+      - name: 🧱 Checkout repository
+        uses: actions/checkout@v4
+
+      - name: ☁️ Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::${{ env.ACCOUNT_ID }}:role/${{ env.ROLE_NAME }}
+          role-session-name: GitHubActions-Terraform-Destroy-${{ github.run_id }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: ⚙️ Set up Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+
+      - name: 💣 Terraform Destroy
+        working-directory: ${{ env.DEPLOYMENT_PATH }}
+        run: terraform destroy -auto-approve

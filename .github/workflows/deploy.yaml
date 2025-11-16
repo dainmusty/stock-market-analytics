@@ -29,10 +29,6 @@ on:
         description: "Apply even if no change is reported in the plan"
         required: false
         type: boolean
-      approvers:
-        description: "Comma-separated list of approvers"
-        required: false
-        default: "dainmusty"
 
 permissions:
   id-token: write
@@ -48,7 +44,6 @@ env:
   ARTIFACTS_BUCKET: data-analytics-dev-artifacts
   ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
   DEPLOYMENT_PATH: root_modules/env/dev
-  APPROVERS: dainmusty
 
 
 # ============================================================
@@ -107,63 +102,17 @@ jobs:
 
 
 # ============================================================
-#               COMMENT PLAN BACK TO THE PR
-# ============================================================
-  PlanComment:
-    needs: Plan
-    if: github.event_name == 'pull_request'
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: 💬 Comment Plan Summary to PR
-        uses: actions/github-script@v7
-        with:
-          script: |
-            const plan = `${{ needs.Plan.outputs.plan-output }}`;
-            const comment = "### Terraform Plan Summary\n```\n" + plan.substring(0, 65000) + "\n```";
-            github.rest.issues.createComment({
-              issue_number: context.issue.number,
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              body: comment
-            });
-
-
-# ============================================================
-#                     MANUAL APPROVAL STAGE
-# ============================================================
-  Approve:
-    needs: Plan
-    runs-on: ubuntu-latest
-    if: |
-      needs.Plan.outputs.plan-changes == 'true' &&
-      github.event.inputs.terraform_action == 'apply'
-    environment:
-      # If workflow_dispatch → use selected environment, else fallback to dev
-      name: ${{ github.event.inputs.environment || 'dev' }}
-    steps:
-      - name: ⏳ Await manual approval
-        uses: trstringer/manual-approval@v1
-        with:
-          approvers: "${{ env.APPROVERS }}"
-          minimum-approvals: 1
-          issue-title: "Terraform Apply Approval Required"
-          issue-body: "Approve to deploy Terraform changes to **${{ github.event.inputs.environment || 'dev' }}**."
-
-
-
-# ============================================================
 #                         APPLY JOB
 # ============================================================
   Apply:
-    needs: [Plan, Approve]
+    needs: [Plan]
     runs-on: ubuntu-latest
 
-    # 🔥 Option A: Apply ONLY runs via manual workflow_dispatch
+    # Apply ONLY triggered manually
     if: github.event.inputs.terraform_action == 'apply'
 
     environment:
-      name: ${{ github.event.inputs.environment || 'dev' }}
+      name: ${{ github.event.inputs.environment }}
 
     steps:
       - name: 🧱 Checkout repository
