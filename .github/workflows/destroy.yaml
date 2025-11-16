@@ -3,6 +3,12 @@ name: Terraform Destroy (Manual Only)
 on:
   workflow_dispatch:
 
+permissions:
+  id-token: write
+  contents: read
+  pull-requests: write
+  packages: write
+
 env:
   AWS_REGION: us-east-1
   TF_VERSION: 1.9.5
