@@ -1095,3 +1095,42 @@ jobs:
       - name: 💣 Terraform Destroy
         working-directory: ${{ env.DEPLOYMENT_PATH }}
         run: terraform destroy -auto-approve
+
+
+# trying a new workflow
+DeployStaging:
+        name: Deploy to Staging
+        if: githu.even.ref == 'refs/heads/main'
+        needs: [Build]
+        runs-on: ubuntu-latest
+        environment:
+          name: Staging
+        steps:
+          - name: 🚀 Terraform Apply
+            working-directory: ${{ env.DEPLOYMENT_PATH }}
+            run: terraform apply -auto-approve
+
+    DeployProd:
+        name: Deploy to Production
+        needs: [DeployStaging]
+        runs-on: ubuntu-latest
+        environment:
+          name: Production
+        steps:
+          - name: 🚀 Terraform Apply
+            working-directory: ${{ env.DEPLOYMENT_PATH }}
+            run: terraform apply -auto-approve
+
+
+1. Should Terraform destroy be inside deploy.yml?
+Best Practice → NO. Keep destroy in a separate workflow.
+
+Reasons:
+
+Why NOT include destroy inside deploy.yml	Why a separate destroy.yml is best
+Prevent accidental deletion of entire infra	Gives you full manual & controlled execution
+Deploy pipeline should be 100% safe	Can restrict manually to Admins only
+Avoids clutter & risk in your CI/CD	Can add required approvals
+Avoid destruction when PR merges	Isolates risk from normal flow
+
+So yes — create a separate destroy.yml with workflow_dispatch + environment approvals.
