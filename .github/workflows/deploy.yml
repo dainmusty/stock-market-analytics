@@ -64,7 +64,7 @@ jobs:
 
   Apply:
     name: Deploy to Dev
-    # apply happens after merge (push), NOT PR
+    # apply happens after merge (push)
     if: github.event_name == 'push'
     runs-on: ubuntu-latest
     needs: [Plan]
