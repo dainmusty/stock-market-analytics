@@ -157,9 +157,10 @@ jobs:
   Apply:
     needs: [Plan, Approve]
     runs-on: ubuntu-latest
-    if: |
-      (github.event_name == 'push' && github.ref == 'refs/heads/main') ||
-      github.event.inputs.terraform_action == 'apply'
+
+    # 🔥 Option A: Apply ONLY runs via manual workflow_dispatch
+    if: github.event.inputs.terraform_action == 'apply'
+
     environment:
       name: ${{ github.event.inputs.environment }}
 
@@ -182,9 +183,6 @@ jobs:
       - name: 🚀 Terraform Apply
         working-directory: ${{ env.DEPLOYMENT_PATH }}
         run: terraform apply -auto-approve
-
-
-      # Python packaging + S3 upload preserved exactly as-is:
 
       - name: 🐍 Set up Python
         uses: actions/setup-python@v5
