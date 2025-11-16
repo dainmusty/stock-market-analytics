@@ -50,7 +50,8 @@ module "bootstrap_iam" {
   "events:PutTargets",
   "events:RemoveTargets",
   "events:DescribeRule",
-  "events:ListTargetsByRule"
+  "events:ListTargetsByRule",
+  "events:ListTagsForResource"
 ]
 
   github_repo_project_link = "repo:dainmusty/stock-market-analytics:*"
