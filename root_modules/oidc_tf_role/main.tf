@@ -55,7 +55,11 @@ module "bootstrap_iam" {
   "events:RemoveTargets",
   "events:DescribeRule",
   "events:ListTargetsByRule",
-  "events:ListTagsForResource"
+  "events:ListTagsForResource",
+  "iam:ListInstanceProfilesForRole",
+    "iam:DeleteRole",
+    "iam:DetachRolePolicy",
+    "iam:DeleteInstanceProfile"
 ]
 
   github_repo_project_link = "repo:dainmusty/stock-market-analytics:*"
