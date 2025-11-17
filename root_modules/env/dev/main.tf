@@ -7,6 +7,7 @@ data "aws_caller_identity" "current" {}
 locals {
   project_name = "data-analytics"
   env          = "dev"
+  
 }
 
 module "s3" {
@@ -30,7 +31,7 @@ module "monitoring" {
   alert_email          = "alerts@example.com"
   tags = {
     Environment = "dev"
-    Project     = "data-analytics"
+    Project     = local.project_name
   }
 }
 
