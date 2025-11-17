@@ -112,7 +112,7 @@ jobs:
         run: aws s3 cp stock_producer.zip s3://${{ env.ARTIFACTS_BUCKET }}/lambda/stock_producer.zip
 
       - name: Upload ingestor lambda to S3
-        run: aws s3 cp stock_ingestor.zip s3://${{ env.ARTIFACTS_BUCKET }}/lambda/stock_ingestor.zip
+        run: aws s3 cp stock_ingest.zip s3://${{ env.ARTIFACTS_BUCKET }}/lambda/stock_ingest.zip
 
       # =====================================================
       # TERRAFORM DEPLOYMENT
