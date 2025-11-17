@@ -41,7 +41,7 @@ module "lambda_ingest" {
 
   env                   = local.env
   artifacts_bucket_name = module.s3.artifacts_bucket_name
-  artifacts_key         = "lambda/stock_ingest.zip"
+  artifacts_key         = "lambda/stock_ingestor.zip"
   lambda_role_arn       = module.iam.lambda_ingest_role_arn
 
   # Bucket and Table names
