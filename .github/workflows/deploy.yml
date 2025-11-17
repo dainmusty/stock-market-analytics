@@ -85,6 +85,13 @@ jobs:
     - name: Package producer
       run: zip -r stock_producer.zip scripts/stock_producer.py requirements.txt
 
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        role-to-assume: arn:aws:iam::${{ env.ACCOUNT_ID }}:role/${{ env.ROLE_NAME }}
+        role-session-name: GitHubActions-Terraform-Apply-${{ github.run_id }}
+        aws-region: ${{ env.AWS_REGION }} 
+
     - name: Upload artifact to S3
       run: aws s3 cp stock_producer.zip s3://${{ env.ARTIFACTS_BUCKET }}/lambda/stock_producer.zip
 
