@@ -1,4 +1,12 @@
-resource "aws_lambda_function" "ingest" {
+# 3 options to create a lambda function:
+# 1. Upload a .zip file to S3 and reference it here (preferred for
+# 2. you can create the function locally using "lambda_function.zip"
+# 3.source_code_hash = filebase64sha256("${path.module}/lambda/ingest.zip")
+########################
+# Lambda: Stock Ingest
+########################
+
+resource "aws_lambda_function" "ingest" {     
   function_name = var.function_name
   s3_bucket     = var.artifacts_bucket_name
   s3_key        = var.artifacts_key

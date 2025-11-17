@@ -7,7 +7,7 @@ data "aws_caller_identity" "current" {}
 locals {
   project_name = "data-analytics"
   env          = "dev"
-  
+
 }
 
 module "s3" {
@@ -41,8 +41,10 @@ module "lambda_ingest" {
 
   env                   = local.env
   artifacts_bucket_name = module.s3.artifacts_bucket_name
-  artifacts_key         = "lambda/function.zip"
+  artifacts_key         = "lambda/stock_ingest.zip"
   lambda_role_arn       = module.iam.lambda_ingest_role_arn
+
+  # Bucket and Table names
   raw_bucket_name       = module.s3.raw_bucket_name
   ddb_table_name        = module.dynamo.table_name
   kinesis_stream_arn    = module.kinesis.kinesis_stream_arn
