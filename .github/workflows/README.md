@@ -1,3 +1,122 @@
+# finalwkflow
+name: Stock Analyzer CI/CD
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  id-token: write
+  contents: read
+  pull-requests: write
+  packages: write
+
+env:
+  AWS_REGION: us-east-1
+  TF_VERSION: 1.9.5
+  PYTHON_VERSION: '3.11'
+  ROLE_NAME: data-analytics-tf-dev-role
+  ARTIFACTS_BUCKET: data-analytics-dev-artifacts
+  ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
+  DEPLOYMENT_PATH: root_modules/env/dev
+
+jobs:
+
+  Plan:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::${{ env.ACCOUNT_ID }}:role/${{ env.ROLE_NAME }}
+          role-session-name: GitHubActions-Terraform-Plan-${{ github.run_id }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+
+      - name: Terraform Init
+        working-directory: ${{ env.DEPLOYMENT_PATH }}
+        run: terraform init
+
+      - name: Terraform Plan
+        id: plan
+        working-directory: ${{ env.DEPLOYMENT_PATH }}
+        run: terraform plan -no-color -out=tfplan
+
+      - name: Check for changes
+        id: check-plan
+        working-directory: ${{ env.DEPLOYMENT_PATH }}
+        run: |
+          terraform show -no-color tfplan | grep -q "No changes" \
+          && echo "changes=false" >> $GITHUB_OUTPUT \
+          || echo "changes=true" >> $GITHUB_OUTPUT
+
+
+  Apply:
+    name: Deploy to Dev
+    # apply happens after merge (push)
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    runs-on: ubuntu-latest
+    environment:
+      name: Development
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::${{ env.ACCOUNT_ID }}:role/${{ env.ROLE_NAME }}
+          role-session-name: GitHubActions-Terraform-Apply-${{ github.run_id }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+
+      - name: Terraform Init
+        working-directory: ${{ env.DEPLOYMENT_PATH }}
+        run: terraform init    
+
+      - name: Terraform Apply
+        working-directory: ${{ env.DEPLOYMENT_PATH }}
+        run: terraform apply -auto-approve
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+          pip install boto3 yfinance
+
+      - name: Package producer
+        run: |
+          zip -r stock_producer.zip scripts/stock_producer.py requirements.txt
+
+      - name: Upload artifact to S3
+        run: |
+          aws s3 cp stock_producer.zip s3://${{ env.ARTIFACTS_BUCKET }}/lambda/stock_producer.zip
+
+      - name: Run stock producer (manual)
+        if: github.event_name == 'workflow_dispatch'
+        run: python scripts/stock_producer.py
+
 # Standard worflow 
 🔥 So the correct sequence is:
 

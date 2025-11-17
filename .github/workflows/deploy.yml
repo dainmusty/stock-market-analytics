@@ -2,10 +2,12 @@ name: Stock Analyzer CI/CD
 
 on:
   push:
-    branches: [main]
+    branches:
+      - main
+      - 'feature/**'   # Trigger CI on feature branches
   pull_request:
-    branches: [main]
-  workflow_dispatch:
+    branches: [main]   # Run Plan when creating PR into main
+  workflow_dispatch:    # Allow manual runs
 
 permissions:
   id-token: write
@@ -24,6 +26,9 @@ env:
 
 jobs:
 
+  # ---------------------------------------------------------
+  # 1) TERRAFORM PLAN (Runs on PR)
+  # ---------------------------------------------------------
   Plan:
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
@@ -53,22 +58,19 @@ jobs:
         working-directory: ${{ env.DEPLOYMENT_PATH }}
         run: terraform plan -no-color -out=tfplan
 
-      - name: Check for changes
-        id: check-plan
-        working-directory: ${{ env.DEPLOYMENT_PATH }}
-        run: |
-          terraform show -no-color tfplan | grep -q "No changes" \
-          && echo "changes=false" >> $GITHUB_OUTPUT \
-          || echo "changes=true" >> $GITHUB_OUTPUT
 
-
+  # ---------------------------------------------------------
+  # 2) TERRAFORM APPLY (Runs only AFTER merge → push to main)
+  # ---------------------------------------------------------
   Apply:
     name: Deploy to Dev
-    # apply happens after merge (push)
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
+
+    # This enforces GitHub UI approval before Apply runs
     environment:
       name: Development
+      url: https://console.aws.amazon.com/
 
     steps:
       - name: Checkout repository
@@ -94,6 +96,8 @@ jobs:
         working-directory: ${{ env.DEPLOYMENT_PATH }}
         run: terraform apply -auto-approve
 
+      # --- Python Build + Upload to S3 ---
+
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
@@ -105,13 +109,7 @@ jobs:
           pip install boto3 yfinance
 
       - name: Package producer
-        run: |
-          zip -r stock_producer.zip scripts/stock_producer.py requirements.txt
+        run: zip -r stock_producer.zip scripts/stock_producer.py requirements.txt
 
-      - name: Upload artifact to S3
-        run: |
-          aws s3 cp stock_producer.zip s3://${{ env.ARTIFACTS_BUCKET }}/lambda/stock_producer.zip
-
-      - name: Run stock producer (manual)
-        if: github.event_name == 'workflow_dispatch'
-        run: python scripts/stock_producer.py
+      - name: Upload lambda artifact to S3
+        run: aws s3 cp stock_producer.zip s3://${{ env.ARTIFACTS_BUCKET }}/lambda/stock_producer.zip
