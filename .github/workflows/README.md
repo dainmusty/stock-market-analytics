@@ -139,6 +139,13 @@ The Apply workflow will start automatically
 Approve the Apply step
 
 Terraform Apply will run
+Checkout
+Install Python
+Package ZIP
+Upload ZIP to S3     <-- MUST HAPPEN BEFORE APPLY
+Configure AWS creds
+Terraform Init
+Terraform Apply      <-- Now Lambda can pull S3 ZIP successfully
 
 🏗️ Visual Architecture Diagram
            ┌─────────────────────────────────────────────┐
