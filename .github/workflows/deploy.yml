@@ -68,50 +68,66 @@ jobs:
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
 
     steps:
-    - name: Checkout repository
-      uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
-    # Python BEFORE Terraform
-    - name: Set up Python
-      uses: actions/setup-python@v5
-      with:
-        python-version: ${{ env.PYTHON_VERSION }}
+      # --- Python Setup BEFORE Uploading Lambda Artifacts ---
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
 
-    - name: Install dependencies
-      run: |
-        pip install -r requirements.txt
-        pip install boto3 yfinance
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+          pip install boto3 yfinance
 
-    - name: Package producer
-      run: zip -r stock_producer.zip scripts/stock_producer.py requirements.txt
+      # =====================================================
+      # PACKAGE LAMBDA PRODUCER
+      # =====================================================
+      - name: Package stock producer Lambda
+        run: |
+          zip -r stock_producer.zip \
+            scripts/stock_producer.py
 
-    - name: Configure AWS credentials
-      uses: aws-actions/configure-aws-credentials@v4
-      with:
-        role-to-assume: arn:aws:iam::${{ env.ACCOUNT_ID }}:role/${{ env.ROLE_NAME }}
-        role-session-name: GitHubActions-Terraform-Apply-${{ github.run_id }}
-        aws-region: ${{ env.AWS_REGION }} 
+      # =====================================================
+      # PACKAGE LAMBDA INGESTOR
+      # =====================================================
+      - name: Package stock ingestor Lambda
+        run: |
+          zip -r stock_ingestor.zip \
+            scripts/stock_ingestor.py
 
-    - name: Upload artifact to S3
-      run: aws s3 cp stock_producer.zip s3://${{ env.ARTIFACTS_BUCKET }}/lambda/stock_producer.zip
+      # =====================================================
+      # UPLOAD BOTH ARTIFACTS TO S3 (after packaging)
+      # =====================================================
+      - name: Configure AWS credentials (assume role)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::${{ env.ACCOUNT_ID }}:role/${{ env.ROLE_NAME }}
+          role-session-name: GitHubActions-Terraform-Apply-${{ github.run_id }}
+          aws-region: ${{ env.AWS_REGION }}
 
-    - name: Configure AWS credentials
-      uses: aws-actions/configure-aws-credentials@v4
-      with:
-        role-to-assume: arn:aws:iam::${{ env.ACCOUNT_ID }}:role/${{ env.ROLE_NAME }}
-        role-session-name: GitHubActions-Terraform-Apply-${{ github.run_id }}
-        aws-region: ${{ env.AWS_REGION }}
+      - name: Upload producer lambda to S3
+        run: aws s3 cp stock_producer.zip s3://${{ env.ARTIFACTS_BUCKET }}/lambda/stock_producer.zip
 
-    - name: Set up Terraform
-      uses: hashicorp/setup-terraform@v3
-      with:
-        terraform_version: ${{ env.TF_VERSION }}
+      - name: Upload ingestor lambda to S3
+        run: aws s3 cp stock_ingestor.zip s3://${{ env.ARTIFACTS_BUCKET }}/lambda/stock_ingestor.zip
 
-    - name: Terraform Init
-      working-directory: ${{ env.DEPLOYMENT_PATH }}
-      run: terraform init
+      # =====================================================
+      # TERRAFORM DEPLOYMENT
+      # =====================================================
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
 
-    - name: Terraform Apply
-      working-directory: ${{ env.DEPLOYMENT_PATH }}
-      run: terraform apply -auto-approve
+      - name: Terraform Init
+        working-directory: ${{ env.DEPLOYMENT_PATH }}
+        run: terraform init
+
+      - name: Terraform Apply
+        working-directory: ${{ env.DEPLOYMENT_PATH }}
+        run: terraform apply -auto-approve
+
 
