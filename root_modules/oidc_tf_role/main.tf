@@ -24,7 +24,7 @@ module "bootstrap_iam" {
   "athena:*",
   "sns:*",
 
-  # IAM - added earlier
+  
   "iam:CreateRole",
   "iam:DeleteRole",
   "iam:UpdateRole",
@@ -40,9 +40,13 @@ module "bootstrap_iam" {
   "iam:ListPolicyVersions",
   "iam:TagRole",
 
-  # NEW: IAM required for reading inline policies  
+  # IAM required for reading inline policies  
   "iam:ListRolePolicies",
   "iam:GetRolePolicy",
+  "iam:GetRole",
+  "iam:ListAttachedRolePolicies",
+  "iam:ListRolePolicies",
+
 
   # EventBridge required actions
   "events:PutRule",
