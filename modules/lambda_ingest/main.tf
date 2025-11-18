@@ -6,15 +6,18 @@
 # Lambda: Stock Ingest
 ########################
 
-resource "aws_lambda_function" "ingest" {     
-  function_name = var.function_name
-  s3_bucket     = var.artifacts_bucket_name
-  s3_key        = var.artifacts_key
-  handler       = "app.lambda_handler"
-  runtime       = "python3.11"
-  role          = var.lambda_role_arn
-  timeout       = 30
-  memory_size   = 256
+resource "aws_lambda_function" "ingest" {
+  function_name = "stock-ingest-${var.env}"
+
+  # 👇 Use local ZIP instead of S3 bucket
+  filename         = "${path.module}/stock_ingestor.zip"
+  source_code_hash = filebase64sha256("${path.module}/stock_ingestor.zip")
+
+  handler          = "app.lambda_handler"        # keep your handler
+  runtime          = "python3.11"
+  role             = var.lambda_role_arn
+  timeout          = 30
+  memory_size      = 256
 
   environment {
     variables = {
@@ -23,9 +26,6 @@ resource "aws_lambda_function" "ingest" {
     }
   }
 
-depends_on = [
-    var.artifacts_bucket_name
-  ]
   tags = merge(var.tags, {
     Name = "stock-ingest-${var.env}"
   })

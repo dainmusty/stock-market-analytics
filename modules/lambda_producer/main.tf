@@ -4,11 +4,11 @@
 
 resource "aws_lambda_function" "stock_producer" {
   function_name = var.function_name
-  s3_bucket     = var.artifacts_bucket
-  s3_key        = var.artifacts_key                # e.g. "lambda/stock_producer.zip"
 
-  # 👇 Handler is now configurable (default is .main for dev)
-  handler       = var.lambda_handler               # e.g. "stock_producer.main" or "stock_producer.lambda_handler"
+  filename         = "${path.module}/stock_producer.zip"
+  source_code_hash = filebase64sha256("${path.module}/stock_producer.zip")
+
+  handler       = var.lambda_handler
   runtime       = var.lambda_runtime
   role          = var.lambda_producer_role_arn
   timeout       = var.lambda_timeout
@@ -20,12 +20,6 @@ resource "aws_lambda_function" "stock_producer" {
       REGION      = var.region
     }
   }
-
-  depends_on = [
-    var.lambda_producer_role_basic_attachment,
-    var.lambda_producer_role_kinesis_attachment,
-    var.artifacts_bucket
-  ]
 
   tags = merge(var.tags, {
     Name = var.function_name
