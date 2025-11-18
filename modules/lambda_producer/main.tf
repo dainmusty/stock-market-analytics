@@ -23,7 +23,8 @@ resource "aws_lambda_function" "stock_producer" {
 
   depends_on = [
     var.lambda_producer_role_basic_attachment,
-    var.lambda_producer_role_kinesis_attachment
+    var.lambda_producer_role_kinesis_attachment,
+    var.artifacts_bucket
   ]
 
   tags = merge(var.tags, {

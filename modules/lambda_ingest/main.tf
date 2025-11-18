@@ -23,6 +23,9 @@ resource "aws_lambda_function" "ingest" {
     }
   }
 
+depends_on = [
+    var.artifacts_bucket_name
+  ]
   tags = merge(var.tags, {
     Name = "stock-ingest-${var.env}"
   })
