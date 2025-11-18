@@ -59,7 +59,9 @@ module "bootstrap_iam" {
   "iam:ListInstanceProfilesForRole",
     "iam:DeleteRole",
     "iam:DetachRolePolicy",
-    "iam:DeleteInstanceProfile"
+    "iam:DeleteInstanceProfile",
+    "iam:DeletePolicy"
+
 ]
 
   github_repo_project_link = "repo:dainmusty/stock-market-analytics:*"
