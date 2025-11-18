@@ -4,10 +4,24 @@ on:
   push:
     branches:
       - main
-      - 'feature/**'   # Trigger CI on feature branches
+      - 'feature/**'
   pull_request:
-    branches: [main]   # Run Plan when creating PR into main
-  workflow_dispatch:    # Allow manual runs
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      terraform_action:
+        description: "Select Terraform action"
+        required: true
+        type: choice
+        options:
+          - plan
+          - apply
+          - destroy
+      skip_nochange:
+        description: "Apply even if no changes detected?"
+        required: false
+        type: boolean
+        default: false
 
 permissions:
   id-token: write
@@ -24,11 +38,11 @@ env:
   ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
   DEPLOYMENT_PATH: root_modules/env/dev
 
-jobs:
 
-  # ---------------------------------------------------------
-  # 1) TERRAFORM PLAN (Runs on PR)
-  # ---------------------------------------------------------
+# ---------------------------------------------------------
+# 1) TERRAFORM PLAN (Runs only on PRs)
+# ---------------------------------------------------------
+jobs:
   Plan:
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
@@ -59,19 +73,29 @@ jobs:
         run: terraform plan -no-color -out=tfplan
 
 
-  # ---------------------------------------------------------
-  # 2) TERRAFORM APPLY (Runs only AFTER merge → push to main)
-  # ---------------------------------------------------------
+# ---------------------------------------------------------
+# 2) TERRAFORM APPLY / PLAN / DESTROY (Push OR Manual)
+# ---------------------------------------------------------
   Apply:
     runs-on: ubuntu-latest
     environment: Development
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+
+    # Push-to-main deployment OR manual workflow_dispatch
+    if: |
+      (github.ref == 'refs/heads/main' && github.event_name == 'push') ||
+      (github.event_name == 'workflow_dispatch')
 
     steps:
+
+      # -------------------------
+      # Check out source code
+      # -------------------------
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # --- Python Setup BEFORE Uploading Lambda Artifacts ---
+      # -------------------------
+      # Python for Lambda packaging
+      # -------------------------
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
@@ -82,41 +106,39 @@ jobs:
           pip install -r requirements.txt
           pip install boto3 yfinance
 
-      # =====================================================
-      # PACKAGE LAMBDA PRODUCER
-      # =====================================================
+      # -------------------------
+      # Package Lambda artifacts
+      # -------------------------
       - name: Package stock producer Lambda
         run: |
-          zip -r stock_producer.zip \
-            scripts/stock_producer.py
+          zip -r stock_producer.zip scripts/stock_producer.py
 
-      # =====================================================
-      # PACKAGE LAMBDA INGESTOR
-      # =====================================================
       - name: Package stock ingestor Lambda
         run: |
-          zip -r stock_ingestor.zip \
-            scripts/stock_ingestor.py
+          zip -r stock_ingestor.zip scripts/stock_ingestor.py
 
-      # =====================================================
-      # UPLOAD BOTH ARTIFACTS TO S3 (after packaging)
-      # =====================================================
-      - name: Configure AWS credentials (assume role)
+      # -------------------------
+      # AWS Credentials
+      # -------------------------
+      - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: arn:aws:iam::${{ env.ACCOUNT_ID }}:role/${{ env.ROLE_NAME }}
           role-session-name: GitHubActions-Terraform-Apply-${{ github.run_id }}
           aws-region: ${{ env.AWS_REGION }}
 
-      - name: Upload producer lambda to S3
+      # -------------------------
+      # Upload Artifacts
+      # -------------------------
+      - name: Upload producer lambda
         run: aws s3 cp stock_producer.zip s3://${{ env.ARTIFACTS_BUCKET }}/lambda/stock_producer.zip
 
-      - name: Upload ingestor lambda to S3
-        run: aws s3 cp stock_ingestor.zip s3://${{ env.ARTIFACTS_BUCKET }}/lambda/stock_ingestor.zip
+      - name: Upload ingestor lambda
+        run: aws.s3 cp stock_ingestor.zip s3://${{ env.ARTIFACTS_BUCKET }}/lambda/stock_ingestor.zip
 
-      # =====================================================
-      # TERRAFORM DEPLOYMENT
-      # =====================================================
+      # -------------------------
+      # Terraform Setup
+      # -------------------------
       - name: Set up Terraform
         uses: hashicorp/setup-terraform@v3
         with:
@@ -126,8 +148,54 @@ jobs:
         working-directory: ${{ env.DEPLOYMENT_PATH }}
         run: terraform init
 
-      - name: Terraform Apply
+      # -------------------------
+      # Terraform PLAN (Always run before Apply/Destroy)
+      # -------------------------
+      - name: Terraform Plan (manual mode)
+        id: manual_plan
+        if: github.event_name == 'workflow_dispatch'
+        working-directory: ${{ env.DEPLOYMENT_PATH }}
+        run: terraform plan -no-color -out=tfplan
+
+      - name: Detect plan changes
+        id: check_changes
+        if: github.event_name == 'workflow_dispatch'
+        working-directory: ${{ env.DEPLOYMENT_PATH }}
+        run: |
+          terraform show -no-color tfplan | grep -q "No changes" \
+            && echo "changes=false" >> $GITHUB_OUTPUT \
+            || echo "changes=true" >> $GITHUB_OUTPUT
+
+      # -------------------------
+      # Manual PLAN ONLY
+      # -------------------------
+      - name: Manual Terraform Plan Only
+        if: github.event_name == 'workflow_dispatch' && inputs.terraform_action == 'plan'
+        run: echo "Terraform action = PLAN only. No apply or destroy will run."
+
+      # -------------------------
+      # Manual APPLY
+      # -------------------------
+      - name: Terraform Apply (manual)
+        if: |
+          github.event_name == 'workflow_dispatch' &&
+          inputs.terraform_action == 'apply' &&
+          (inputs.skip_nochange == 'true' || steps.check_changes.outputs.changes == 'true')
         working-directory: ${{ env.DEPLOYMENT_PATH }}
         run: terraform apply -auto-approve
 
+      # -------------------------
+      # Manual DESTROY
+      # -------------------------
+      - name: Terraform Destroy (manual)
+        if: github.event_name == 'workflow_dispatch' && inputs.terraform_action == 'destroy'
+        working-directory: ${{ env.DEPLOYMENT_PATH }}
+        run: terraform destroy -auto-approve
 
+      # -------------------------
+      # AUTO-APPLY for push-to-main
+      # -------------------------
+      - name: Terraform Apply (auto)
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        working-directory: ${{ env.DEPLOYMENT_PATH }}
+        run: terraform apply -auto-approve
