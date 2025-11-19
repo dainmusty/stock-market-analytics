@@ -7,7 +7,7 @@ on:
       - 'feature/**'
   pull_request:
     branches: [main]
-  workflow_dispatch: {}
+  workflow_dispatch: {}   # add manual trigger later
 
 permissions:
   id-token: write
@@ -140,15 +140,4 @@ jobs:
         working-directory: ${{ env.DEPLOYMENT_PATH }}
         run: terraform apply -auto-approve
 
-      # -------------------------------------------
-      # Upload ZIP to S3 AFTER bucket exists
-      # -------------------------------------------
-      - name: Upload producer lambda to S3
-        run: |
-          aws s3 cp ${{ env.PRODUCER_ZIPPED_FILE_PATH }}/stock_producer.zip \ # WORK ON THIS NOW
-            s3://${{ env.ARTIFACTS_BUCKET }}/lambda/stock_producer.zip
-
-      - name: Upload ingestor lambda to S3
-        run: |
-          aws s3 cp ${{ env.INGEST_ZIPPED_FILE_PATH }}/stock_ingestor.zip \
-            s3://${{ env.ARTIFACTS_BUCKET }}/lambda/stock_ingestor.zip
+   
