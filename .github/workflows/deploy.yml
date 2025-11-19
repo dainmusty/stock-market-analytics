@@ -23,6 +23,8 @@ env:
   ARTIFACTS_BUCKET: data-analytics-dev-artifacts
   ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
   DEPLOYMENT_PATH: root_modules/env/dev
+  INGEST_ZIPPED_FILE_PATH: modules/lambda_ingest
+  PRODUCER_ZIPPED_FILE_PATH: modules/lambda_producer
 
 jobs:
 
@@ -94,14 +96,14 @@ jobs:
       # Package Lambda Functions (local ZIP)
       # Saved into the Terraform module directory
       # -------------------------------------------
-      - name: Package stock producer Lambda
+      - name: Package producer lambda
         run: |
-          mkdir -p ${{ env.DEPLOYMENT_PATH }}/lambda_artifacts
-          zip -j ${{ env.DEPLOYMENT_PATH }}/lambda_artifacts/stock_producer.zip scripts/stock_producer.py
+          zip -j ${{ env.PRODUCERZIPPED_FILE_PATH }}/stock_producer.zip scripts/stock_producer.py
+
 
       - name: Package stock ingestor Lambda
         run: |
-          zip -j ${{ env.DEPLOYMENT_PATH }}/lambda_artifacts/stock_ingestor.zip scripts/stock_ingestor.py
+          zip -j ${{ env.INGESTZIPPED_FILE_PATH }}/stock_ingestor.zip scripts/stock_ingestor.py
 
       # -------------------------------------------
       # Set up AWS credentials
@@ -134,10 +136,10 @@ jobs:
       # -------------------------------------------
       - name: Upload producer lambda to S3
         run: |
-          aws s3 cp ${{ env.DEPLOYMENT_PATH }}/lambda_artifacts/stock_producer.zip \
+          aws s3 cp ${{ env.PRODUCER_ZIPPED_FILE_PATH }}/stock_producer.zip \ # WORK ON THIS NOW
             s3://${{ env.ARTIFACTS_BUCKET }}/lambda/stock_producer.zip
 
       - name: Upload ingestor lambda to S3
         run: |
-          aws s3 cp ${{ env.DEPLOYMENT_PATH }}/lambda_artifacts/stock_ingestor.zip \
+          aws s3 cp ${{ env.INGEST_ZIPPED_FILE_PATH }}/stock_ingestor.zip \
             s3://${{ env.ARTIFACTS_BUCKET }}/lambda/stock_ingestor.zip
