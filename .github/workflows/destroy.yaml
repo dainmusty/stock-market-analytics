@@ -38,16 +38,17 @@ jobs:
         with:
           terraform_version: ${{ env.TF_VERSION }}
 
+      
+      - name: Terraform Init
+        working-directory: ${{ env.DEPLOYMENT_PATH }}
+        run: terraform init
+
+
       - name: Create placeholder ZIP for destroy
         run: |
           echo "placeholder" > empty.txt
           zip -j modules/lambda_ingest/stock_ingestor.zip empty.txt
           zip -j modules/lambda_producer/stock_producer.zip empty.txt
-
-
-      - name: Terraform Init
-        working-directory: ${{ env.DEPLOYMENT_PATH }}
-        run: terraform init
 
       - name: Terraform Destroy
         working-directory: ${{ env.DEPLOYMENT_PATH }}
