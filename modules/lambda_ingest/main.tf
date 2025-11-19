@@ -10,8 +10,8 @@ resource "aws_lambda_function" "ingest" {
   function_name = "stock-ingest-${var.env}"
 
   # 👇 Use local ZIP instead of S3 bucket
-  filename         = "${path.module}/modules/lambda_ingest/stock_ingestor.zip"
-  source_code_hash = filebase64sha256("${path.module}/modules/lambda_ingest/stock_ingestor.zip")
+  filename         = "${path.module}/stock_ingestor.zip"
+  source_code_hash = filebase64sha256("${path.module}/stock_ingestor.zip")
 
   handler          = "app.lambda_handler"        # keep your handler
   runtime          = "python3.11"

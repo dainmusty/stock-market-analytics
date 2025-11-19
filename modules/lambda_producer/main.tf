@@ -5,8 +5,8 @@
 resource "aws_lambda_function" "stock_producer" {
   function_name = var.function_name
 
-  filename         = "${path.module}/modules/lambda_producer/stock_producer.zip"
-  source_code_hash = filebase64sha256("${path.module}/modules/lambda_producer/stock_producer.zip")
+  filename         = "${path.module}/stock_producer.zip"
+  source_code_hash = filebase64sha256("${path.module}/stock_producer.zip")
 
   handler       = var.lambda_handler
   runtime       = var.lambda_runtime
