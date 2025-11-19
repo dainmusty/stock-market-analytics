@@ -53,6 +53,7 @@ module "lambda_ingest" {
     Project     = "data-analytics"
   }
   function_name = "${local.env}-stock-ingest"
+  depends_on = [ module.s3 ]
 }
 
 
@@ -79,6 +80,7 @@ module "lambda_producer" {
     Environment = "dev"
     Project     = "data-analytics"
   }
+  depends_on = [ module.s3 ]
 }
 
 
