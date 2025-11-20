@@ -125,7 +125,7 @@ jobs:
           aws-region: ${{ env.AWS_REGION }}
 
       # -------------------------------------------
-      # TERRAFORM APPLY (Creates the S3 bucket first)
+      # TERRAFORM APPLY (Creates the S3 bucket first before uploading artifacts)
       # -------------------------------------------
       - name: Set up Terraform
         uses: hashicorp/setup-terraform@v3
