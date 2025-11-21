@@ -7,7 +7,16 @@ on:
       - 'feature/**'
   pull_request:
     branches: [main]
-  workflow_dispatch: {}   # add manual trigger later
+  workflow_dispatch:
+    inputs:
+      terraform_action:
+        description: "Select the Terraform action to perform"
+        required: true
+        type: choice
+        options:
+          - "plan"
+          - "apply"
+          - "destroy"
 
 permissions:
   id-token: write
@@ -54,7 +63,6 @@ jobs:
       - name: Package producer lambda
         run: |
           zip -j ${{ env.PRODUCER_ZIPPED_FILE_PATH }}/stock_producer.zip scripts/stock_producer.py
-
 
       - name: Package stock ingestor Lambda
         run: |
@@ -103,12 +111,10 @@ jobs:
 
       # -------------------------------------------
       # Package Lambda Functions (local ZIP)
-      # Saved into the Terraform module directory
       # -------------------------------------------
       - name: Package stock producer lambda
         run: |
           zip -j ${{ env.PRODUCER_ZIPPED_FILE_PATH }}/stock_producer.zip scripts/stock_producer.py
-
 
       - name: Package stock ingestor Lambda
         run: |
@@ -125,7 +131,7 @@ jobs:
           aws-region: ${{ env.AWS_REGION }}
 
       # -------------------------------------------
-      # TERRAFORM APPLY (Creates the S3 bucket first before uploading artifacts)
+      # TERRAFORM APPLY
       # -------------------------------------------
       - name: Set up Terraform
         uses: hashicorp/setup-terraform@v3
@@ -139,5 +145,3 @@ jobs:
       - name: Terraform Apply
         working-directory: ${{ env.DEPLOYMENT_PATH }}
         run: terraform apply -auto-approve
-
-   
